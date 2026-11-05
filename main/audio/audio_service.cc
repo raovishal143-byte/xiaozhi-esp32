@@ -311,6 +311,30 @@ void AudioService::AudioInputTask() {
             int samples = 160;  // 10ms
             std::vector<int16_t> data;
             if (ReadAudioData(data, 16000, samples)) {
+                // Temporary microphone diagnostic: report signal level without
+                // printing every frame or changing the audio pipeline.
+                static int64_t last_mic_diag_us = 0;
+                const int64_t now_us = esp_timer_get_time();
+                if (now_us - last_mic_diag_us >= 2000000) {
+                    uint64_t sum_squares = 0;
+                    uint32_t peak = 0;
+                    for (const auto sample : data) {
+                        const int32_t value = sample;
+                        const uint32_t magnitude = value < 0 ? -value : value;
+                        sum_squares += static_cast<uint64_t>(value * value);
+                        if (magnitude > peak) {
+                            peak = magnitude;
+                        }
+                    }
+                    const uint32_t rms = data.empty()
+                                             ? 0
+                                             : static_cast<uint32_t>(
+                                                   sqrt(static_cast<double>(sum_squares) /
+                                                        data.size()));
+                    ESP_LOGI(TAG, "MIC_DIAG read=OK samples=%u rms=%u peak=%u",
+                             static_cast<unsigned>(data.size()), rms, peak);
+                    last_mic_diag_us = now_us;
+                }
                 audio_engine_->Feed(std::move(data));
                 continue;
             }
