@@ -930,9 +930,13 @@ void Application::HandleWakeWordDetectedEvent() {
 
     if (state == kDeviceStateIdle) {
         BeginWakeWordInvoke(wake_word);
+        // Refresh the LED immediately when the wake word is accepted.
+        Board::GetInstance().GetLed()->OnStateChanged();
     } else if (state == kDeviceStateNotifying) {
         StopNotification();
         BeginWakeWordInvoke(wake_word);
+        // Refresh the LED immediately when the wake word is accepted.
+        Board::GetInstance().GetLed()->OnStateChanged();
     } else if (state == kDeviceStateSpeaking || state == kDeviceStateListening) {
         AbortSpeaking(kAbortReasonWakeWordDetected);
         // Clear send queue to avoid sending residues to server
