@@ -262,26 +262,53 @@ int NoAudioCodec::Write(const int16_t* data, int samples) {
 }
 
 int NoAudioCodec::Read(int16_t* dest, int samples) {
-    size_t bytes_read;
+    size_t bytes_read = 0;
     constexpr uint32_t kReadTimeoutMs = 200;
 
     std::vector<int32_t> bit32_buffer(samples);
-    if (i2s_channel_read(rx_handle_, bit32_buffer.data(), samples * sizeof(int32_t), &bytes_read, kReadTimeoutMs) != ESP_OK) {
+    const esp_err_t err = i2s_channel_read(
+        rx_handle_, bit32_buffer.data(), samples * sizeof(int32_t),
+        &bytes_read, kReadTimeoutMs);
+    if (err != ESP_OK) {
+        ESP_LOGE(TAG, "Microphone I2S read failed: %s", esp_err_to_name(err));
         return 0;
     }
 
     samples = bytes_read / sizeof(int32_t);
-float gain = (input_gain_ > 0.0f) ? input_gain_ : 1.0f;
+    if (samples <= 0) {
+        ESP_LOGW(TAG, "Microphone I2S returned no samples (bytes=%u)", (unsigned)bytes_read);
+        return 0;
+    }
 
-for (int i = 0; i < samples; i++) {
-    int32_t value = bit32_buffer[i] >> 12;
-    int32_t amplified = (int32_t)(value * gain);
+    // INMP441 supplies 24-bit signed samples in a 32-bit I2S slot.
+    // Keep the upper 16 bits; shifting by 12 clips normal microphone levels.
+    const float gain = (input_gain_ > 0.0f) ? input_gain_ : 1.0f;
+    int32_t raw_min = INT32_MAX;
+    int32_t raw_max = INT32_MIN;
+    int32_t pcm_peak = 0;
+    for (int i = 0; i < samples; ++i) {
+        const int32_t raw = bit32_buffer[i];
+        if (raw < raw_min) raw_min = raw;
+        if (raw > raw_max) raw_max = raw;
 
-    if (amplified > INT16_MAX) amplified = INT16_MAX;
-    if (amplified < -INT16_MAX) amplified = -INT16_MAX;
+        const int32_t value = raw >> 16;
+        int32_t amplified = static_cast<int32_t>(value * gain);
+        if (amplified > INT16_MAX) amplified = INT16_MAX;
+        if (amplified < INT16_MIN) amplified = INT16_MIN;
+        dest[i] = static_cast<int16_t>(amplified);
 
-    dest[i] = (int16_t)amplified;
-}
+        const int32_t magnitude = amplified < 0 ? -amplified : amplified;
+        if (magnitude > pcm_peak) pcm_peak = magnitude;
+    }
+
+    static uint32_t mic_read_diag_count = 0;
+    if (mic_read_diag_count < 20) {
+        ESP_LOGI(TAG,
+                 "MIC_I2S_DIAG read=%lu samples=%d bytes=%u raw_min=%ld raw_max=%ld pcm_peak=%ld",
+                 (unsigned long)mic_read_diag_count, samples, (unsigned)bytes_read,
+                 (long)raw_min, (long)raw_max, (long)pcm_peak);
+        ++mic_read_diag_count;
+    }
     return samples;
 }
 
