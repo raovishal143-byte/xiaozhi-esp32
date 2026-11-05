@@ -374,8 +374,8 @@ void Application::HandleActivationDoneEvent() {
 
     if (!has_error) {
         Schedule([this]() {
-            // Play the success sound to indicate the device is ready
-            audio_service_.PlaySound(Lang::Sounds::OGG_SUCCESS);
+            // Speak a short startup greeting after network activation succeeds.
+            audio_service_.PlaySound(Lang::Sounds::OGG_HI_THERE);
         });
     }
 }
