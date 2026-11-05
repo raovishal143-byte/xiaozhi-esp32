@@ -6,7 +6,8 @@
       "name": "waveshare-esp32-s3-zero-xiaozhi",
       "sdkconfig_append": [
         "CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y",
-        "CONFIG_PARTITION_TABLE_CUSTOM_FILENAME=\"partitions/v2/4m.csv\""
+        "CONFIG_PARTITION_TABLE_CUSTOM_FILENAME=\"partitions/v2/4m.csv\"",
+        "CONFIG_SPIRAM_MODE_QUAD=y"
       ]
     }
   ]
