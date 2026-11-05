@@ -374,6 +374,25 @@ void AudioService::AudioOutputTask() {
             callbacks_.on_playback_progress(task.playback_id, task.media_position_ms);
         }
 
+        static uint32_t output_diag_count = 0;
+        if (output_diag_count < 8) {
+            int32_t peak = 0;
+            int16_t min_sample = 0, max_sample = 0;
+            if (!task.pcm.empty()) {
+                min_sample = max_sample = task.pcm[0];
+                for (int16_t sample : task.pcm) {
+                    if (sample < min_sample) min_sample = sample;
+                    if (sample > max_sample) max_sample = sample;
+                    int32_t magnitude = sample < 0 ? -(int32_t)sample : (int32_t)sample;
+                    if (magnitude > peak) peak = magnitude;
+                }
+            }
+            ESP_LOGI(TAG,
+                     "PLAY_DIAG frame=%lu samples=%u min=%d max=%d peak=%ld rate=%d",
+                     (unsigned long)output_diag_count, (unsigned)task.pcm.size(),
+                     min_sample, max_sample, (long)peak, codec_->output_sample_rate());
+            ++output_diag_count;
+        }
         codec_->OutputData(task.pcm);
 
         /* Update the last output time */
@@ -465,6 +484,26 @@ void AudioService::OpusCodecTask() {
                                                 &actual_output);
                         resampled.resize(actual_output);
                         task.pcm = std::move(resampled);
+                    }
+                    static uint32_t decode_diag_count = 0;
+                    if (decode_diag_count < 8) {
+                        int32_t peak = 0;
+                        int16_t min_sample = 0, max_sample = 0;
+                        if (!task.pcm.empty()) {
+                            min_sample = max_sample = task.pcm[0];
+                            for (int16_t sample : task.pcm) {
+                                if (sample < min_sample) min_sample = sample;
+                                if (sample > max_sample) max_sample = sample;
+                                int32_t magnitude = sample < 0 ? -(int32_t)sample : (int32_t)sample;
+                                if (magnitude > peak) peak = magnitude;
+                            }
+                        }
+                        ESP_LOGI(TAG,
+                                 "DECODE_DIAG frame=%lu input_rate=%d frame_ms=%d payload=%u pcm=%u min=%d max=%d peak=%ld",
+                                 (unsigned long)decode_diag_count, packet->sample_rate,
+                                 packet->frame_duration, (unsigned)packet->payload.size(),
+                                 (unsigned)task.pcm.size(), min_sample, max_sample, (long)peak);
+                        ++decode_diag_count;
                     }
                     decoded = true;
                 } else {
