@@ -28,7 +28,10 @@ public:
 
     void OnStateChanged() override {
         const auto state = Application::GetInstance().GetDeviceState();
-        if (state == kDeviceStateListening || state == kDeviceStateAudioTesting) {
+        if (state == kDeviceStateConnecting || state == kDeviceStateListening ||
+            state == kDeviceStateAudioTesting) {
+            // Light the status LED immediately after Jarvis is accepted, including
+            // the connecting phase before the server starts the listening session.
             mode_.store(1);
         } else if (state == kDeviceStateSpeaking || state == kDeviceStateNotifying) {
             mode_.store(2);
