@@ -1,5 +1,6 @@
 #include "audio_service.h"
 #include <esp_log.h>
+#include <esp_timer.h>
 #include <cstring>
 #include <cmath>
 
