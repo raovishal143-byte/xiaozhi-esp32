@@ -331,7 +331,7 @@ void AudioService::AudioInputTask() {
                     const uint32_t rms = data.empty()
                                              ? 0
                                              : static_cast<uint32_t>(
-                                                   sqrt(static_cast<double>(sum_squares) /
+                                                   std::sqrt(static_cast<double>(sum_squares) /
                                                         data.size()));
                     ESP_LOGI(TAG, "MIC_DIAG read=OK samples=%u rms=%u peak=%u",
                              static_cast<unsigned>(data.size()), rms, peak);
