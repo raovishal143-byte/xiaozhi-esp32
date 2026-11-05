@@ -36,8 +36,11 @@ public:
         } else if (state == kDeviceStateSpeaking || state == kDeviceStateNotifying) {
             mode_.store(2);
         } else {
-            // Standby, processing/connecting, and all other states: LED off.
-            mode_.store(0);
+            // Do not let the early boot/activation idle callback cancel the
+            // five-flash startup pattern. A real wake/listening state above
+            // still interrupts it immediately.
+            int startup_mode = 3;
+            mode_.compare_exchange_strong(startup_mode, 0);
         }
     }
 
