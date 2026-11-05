@@ -1,6 +1,7 @@
 #include "no_audio_codec.h"
 
 #include <esp_log.h>
+#include <esp_timer.h>
 #include <cmath>
 #include <cstdint>
 #include <cstring>
@@ -301,13 +302,17 @@ int NoAudioCodec::Read(int16_t* dest, int samples) {
         if (magnitude > pcm_peak) pcm_peak = magnitude;
     }
 
-    static uint32_t mic_read_diag_count = 0;
-    if (mic_read_diag_count < 20) {
-        ESP_LOGI(TAG,
-                 "MIC_I2S_DIAG read=%lu samples=%d bytes=%u raw_min=%ld raw_max=%ld pcm_peak=%ld",
-                 (unsigned long)mic_read_diag_count, samples, (unsigned)bytes_read,
-                 (long)raw_min, (long)raw_max, (long)pcm_peak);
-        ++mic_read_diag_count;
+    // Report raw I2S values periodically under AudioService so they remain
+    // visible with the normal serial-monitor tag filter. This distinguishes
+    // an actual silent I2S bus from a PCM conversion problem.
+    static int64_t last_raw_diag_us = 0;
+    const int64_t now_us = esp_timer_get_time();
+    if (now_us - last_raw_diag_us >= 2000000 || last_raw_diag_us == 0) {
+        ESP_LOGI("AudioService",
+                 "MIC_RAW_DIAG samples=%d bytes=%u raw_min=%ld raw_max=%ld pcm_peak=%ld input_enabled=%d",
+                 samples, (unsigned)bytes_read, (long)raw_min, (long)raw_max,
+                 (long)pcm_peak, input_enabled_ ? 1 : 0);
+        last_raw_diag_us = now_us;
     }
     return samples;
 }
