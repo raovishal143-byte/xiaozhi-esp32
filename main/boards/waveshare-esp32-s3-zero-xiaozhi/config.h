@@ -18,6 +18,9 @@
 #define AUDIO_I2S_SPK_GPIO_LRCK GPIO_NUM_9
 #define AUDIO_I2S_SPK_GPIO_DOUT GPIO_NUM_10
 
+// MAX98357A SD_MODE: drive high to keep the amplifier enabled.
+#define AUDIO_I2S_AMP_SD_GPIO GPIO_NUM_7
+
 // External active-high LED, connected through a 220-ohm resistor
 #define BUILTIN_LED_GPIO GPIO_NUM_2
 
