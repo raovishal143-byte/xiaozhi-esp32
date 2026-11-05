@@ -7,6 +7,7 @@
 
 #include <driver/gpio.h>
 #include <esp_err.h>
+#include <esp_log.h>
 #include <freertos/FreeRTOS.h>
 #include <freertos/task.h>
 
@@ -23,7 +24,26 @@ public:
         config.intr_type = GPIO_INTR_DISABLE;
         ESP_ERROR_CHECK(gpio_config(&config));
         ESP_ERROR_CHECK(gpio_set_level(gpio_, 0));
-        xTaskCreate(PulseTask, "StatusLed", 2048, this, tskIDLE_PRIORITY + 1, nullptr);
+        ESP_LOGI("WaveshareStatusLed", "Status LED GPIO %d configured as active-high output", (int)gpio_);
+
+        // Perform the five boot flashes synchronously so they cannot be lost
+        // if task creation is delayed or fails during early startup.
+        for (int flash = 0; flash < 5; ++flash) {
+            ESP_ERROR_CHECK(gpio_set_level(gpio_, 1));
+            vTaskDelay(pdMS_TO_TICKS(120));
+            ESP_ERROR_CHECK(gpio_set_level(gpio_, 0));
+            vTaskDelay(pdMS_TO_TICKS(120));
+        }
+
+        const BaseType_t task_result =
+            xTaskCreate(PulseTask, "StatusLed", 4096, this, 5, nullptr);
+        if (task_result != pdPASS) {
+            ESP_LOGE("WaveshareStatusLed", "Failed to create status LED task (result=%ld)",
+                     (long)task_result);
+        } else {
+            ESP_LOGI("WaveshareStatusLed", "Status LED task started");
+        }
+        mode_.store(0);
     }
 
     void OnStateChanged() override {
