@@ -233,8 +233,29 @@ int NoAudioCodec::Write(const int16_t* data, int samples) {
         }
     }
 
-    size_t bytes_written;
-    ESP_ERROR_CHECK(i2s_channel_write(tx_handle_, buffer.data(), samples * sizeof(int32_t), &bytes_written, portMAX_DELAY));
+    static uint32_t diagnostic_writes = 0;
+    int32_t peak = 0;
+    for (int i = 0; i < samples; ++i) {
+        int32_t value = buffer[i] >> 16;
+        int32_t magnitude = value < 0 ? -value : value;
+        if (magnitude > peak) peak = magnitude;
+    }
+
+    size_t bytes_written = 0;
+    esp_err_t write_err = i2s_channel_write(
+        tx_handle_, buffer.data(), samples * sizeof(int32_t), &bytes_written, portMAX_DELAY);
+    if (diagnostic_writes < 8) {
+        ESP_LOGI(TAG,
+                 "SPK_DIAG write=%lu samples=%d peak=%ld requested=%u written=%u err=%s",
+                 (unsigned long)diagnostic_writes, samples, (long)peak,
+                 (unsigned)(samples * sizeof(int32_t)), (unsigned)bytes_written,
+                 esp_err_to_name(write_err));
+        ++diagnostic_writes;
+    }
+    if (write_err != ESP_OK) {
+        ESP_LOGE(TAG, "I2S speaker write failed: %s", esp_err_to_name(write_err));
+        return 0;
+    }
     return bytes_written / sizeof(int32_t);
 }
 
