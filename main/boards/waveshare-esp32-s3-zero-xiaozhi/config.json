@@ -1,0 +1,12 @@
+{
+  "type": "waveshare-esp32-s3-zero-xiaozhi",
+  "target": "esp32s3",
+  "builds": [
+    {
+      "name": "waveshare-esp32-s3-zero-xiaozhi",
+      "sdkconfig_append": [
+        "CONFIG_ESPTOOLPY_FLASHSIZE_4MB=y"
+      ]
+    }
+  ]
+}
