@@ -172,6 +172,9 @@ choice BOARD_TYPE
     config BOARD_TYPE_BREAD_COMPACT_NT26
         bool "Bread Compact NT26 4G (面包板)"
         depends on IDF_TARGET_ESP32S3
+    config BOARD_TYPE_WAVESHARE_ESP32_S3_ZERO_XIAOZHI
+        bool "Waveshare ESP32-S3-Zero (XiaoZhi, no display)"
+        depends on IDF_TARGET_ESP32S3
     config BOARD_TYPE_BREAD_COMPACT_WIFI
         bool "Bread Compact Wi-Fi (面包板)"
         depends on IDF_TARGET_ESP32S3
