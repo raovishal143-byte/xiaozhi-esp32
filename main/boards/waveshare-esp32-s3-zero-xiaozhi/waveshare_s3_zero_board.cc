@@ -35,6 +35,9 @@ public:
             vTaskDelay(pdMS_TO_TICKS(120));
         }
 
+        // The five startup flashes have already completed. Start the task in
+        // standby so it cannot replay the boot pattern a second time.
+        mode_.store(0);
         const BaseType_t task_result =
             xTaskCreate(PulseTask, "StatusLed", 4096, this, 5, nullptr);
         if (task_result != pdPASS) {
@@ -43,7 +46,6 @@ public:
         } else {
             ESP_LOGI("WaveshareStatusLed", "Status LED task started");
         }
-        mode_.store(0);
     }
 
     void OnStateChanged() override {
@@ -56,34 +58,19 @@ public:
         } else if (state == kDeviceStateSpeaking || state == kDeviceStateNotifying) {
             mode_.store(2);
         } else {
-            // Do not let the early boot/activation idle callback cancel the
-            // five-flash startup pattern. A real wake/listening state above
-            // still interrupts it immediately.
-            int startup_mode = 3;
-            mode_.compare_exchange_strong(startup_mode, 0);
+            mode_.store(0);
         }
     }
 
 private:
     gpio_num_t gpio_;
-    std::atomic<int> mode_{3}; // Run five startup flashes before entering standby.
+    std::atomic<int> mode_{0};
 
     static void PulseTask(void* arg) {
         auto* self = static_cast<WaveshareStatusLed*>(arg);
         for (;;) {
             const int mode = self->mode_.load();
-            if (mode == 3) {
-                // Five short flashes at boot. Stop immediately if a real device
-                // state arrives while the startup pattern is running.
-                for (int flash = 0; flash < 5 && self->mode_.load() == 3; ++flash) {
-                    gpio_set_level(self->gpio_, 1);
-                    vTaskDelay(pdMS_TO_TICKS(120));
-                    gpio_set_level(self->gpio_, 0);
-                    vTaskDelay(pdMS_TO_TICKS(120));
-                }
-                int expected = 3;
-                self->mode_.compare_exchange_strong(expected, 0);
-            } else if (mode == 1) {
+            if (mode == 1) {
                 gpio_set_level(self->gpio_, 1);
                 vTaskDelay(pdMS_TO_TICKS(40));
             } else if (mode == 2) {
