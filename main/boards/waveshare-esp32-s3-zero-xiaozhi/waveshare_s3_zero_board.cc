@@ -102,6 +102,20 @@ private:
 class WaveshareS3ZeroBoard : public WifiBoard {
 public:
     WaveshareS3ZeroBoard() {
+        // MAX98357A SD_MODE is an enable/shutdown input. Do not leave it
+        // floating: drive it high before the audio codec is initialized.
+        gpio_config_t amp_sd_config = {};
+        amp_sd_config.pin_bit_mask = 1ULL << AUDIO_I2S_AMP_SD_GPIO;
+        amp_sd_config.mode = GPIO_MODE_OUTPUT;
+        amp_sd_config.pull_up_en = GPIO_PULLUP_DISABLE;
+        amp_sd_config.pull_down_en = GPIO_PULLDOWN_DISABLE;
+        amp_sd_config.intr_type = GPIO_INTR_DISABLE;
+        ESP_ERROR_CHECK(gpio_config(&amp_sd_config));
+        ESP_ERROR_CHECK(gpio_set_level(AUDIO_I2S_AMP_SD_GPIO, 1));
+        ESP_LOGI("WaveshareS3ZeroBoard",
+                 "MAX98357A SD_MODE enabled on GPIO %d",
+                 (int)AUDIO_I2S_AMP_SD_GPIO);
+
         // Construct the LED immediately during board startup, rather than
         // waiting for the first application state-change callback.
         (void)GetLed();
