@@ -68,7 +68,7 @@ public:
 
 private:
     led_strip_handle_t strip_ = nullptr;
-    std::atomic<int> mode_{0};
+    std::atomic<int> mode_{0};  // Yellow standby by default
 
     void SetColor(uint8_t red, uint8_t green, uint8_t blue) {
         led_strip_set_pixel(strip_, 0, red, green, blue);
@@ -86,9 +86,11 @@ private:
         for (;;) {
             const int mode = self->mode_.load();
             if (mode == 0) {
-                self->Clear();
-                on = false;
-                vTaskDelay(pdMS_TO_TICKS(80));
+                // Yellow steady: powered on and waiting in standby.
+                self->SetColor(255, 160, 0);
+                on = true;
+                previous_mode = 0;
+                vTaskDelay(pdMS_TO_TICKS(100));
                 continue;
             }
             if (mode != previous_mode) {
