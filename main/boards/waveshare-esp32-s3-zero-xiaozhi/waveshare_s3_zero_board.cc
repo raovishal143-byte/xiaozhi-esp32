@@ -62,13 +62,13 @@ public:
         } else if (state == kDeviceStateSpeaking || state == kDeviceStateNotifying) {
             mode_.store(2);  // Green blink: assistant audio
         } else {
-            mode_.store(0);
+            mode_.store(0);  // Yellow breathing: standby
         }
     }
 
 private:
     led_strip_handle_t strip_ = nullptr;
-    std::atomic<int> mode_{0};  // Yellow standby by default
+    std::atomic<int> mode_{0};
 
     void SetColor(uint8_t red, uint8_t green, uint8_t blue) {
         led_strip_set_pixel(strip_, 0, red, green, blue);
@@ -83,16 +83,28 @@ private:
         auto* self = static_cast<WaveshareStatusLed*>(arg);
         bool on = false;
         int previous_mode = -1;
+        int breathing_level = 0;
+        int breathing_direction = 1;
+
         for (;;) {
             const int mode = self->mode_.load();
             if (mode == 0) {
-                // Yellow steady: powered on and waiting in standby.
-                self->SetColor(255, 160, 0);
-                on = true;
+                // Smooth yellow breathing: one complete fade-in/fade-out cycle in ~2 seconds.
+                const uint8_t brightness = static_cast<uint8_t>(25 + (breathing_level * 230) / 100);
+                self->SetColor(brightness, static_cast<uint8_t>((160 * brightness) / 255), 0);
+                breathing_level += breathing_direction * 2;
+                if (breathing_level >= 100) {
+                    breathing_level = 100;
+                    breathing_direction = -1;
+                } else if (breathing_level <= 0) {
+                    breathing_level = 0;
+                    breathing_direction = 1;
+                }
                 previous_mode = 0;
-                vTaskDelay(pdMS_TO_TICKS(100));
+                vTaskDelay(pdMS_TO_TICKS(20));
                 continue;
             }
+
             if (mode != previous_mode) {
                 on = false;
                 previous_mode = mode;
