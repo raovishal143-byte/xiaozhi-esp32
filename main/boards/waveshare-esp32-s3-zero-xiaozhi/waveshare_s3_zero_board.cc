@@ -33,7 +33,7 @@ public:
         led_strip_config_t strip_config = {};
         strip_config.strip_gpio_num = kOnboardRgbGpio;
         strip_config.max_leds = 1;
-        strip_config.color_component_format = LED_STRIP_COLOR_COMPONENT_FMT_GRB;
+        strip_config.color_component_format = LED_STRIP_COLOR_COMPONENT_FMT_RGB;
         strip_config.led_model = LED_MODEL_WS2812;
 
         led_strip_rmt_config_t rmt_config = {};
