@@ -8,20 +8,15 @@
 
 #define AUDIO_I2S_METHOD_SIMPLEX
 
-// INMP441 microphone
-#define AUDIO_I2S_MIC_GPIO_SCK  GPIO_NUM_4
+// INMP441 microphone: SD/DOUT=GPIO4, WS=GPIO5, SCK=GPIO6
+#define AUDIO_I2S_MIC_GPIO_DIN  GPIO_NUM_4
 #define AUDIO_I2S_MIC_GPIO_WS   GPIO_NUM_5
-#define AUDIO_I2S_MIC_GPIO_DIN  GPIO_NUM_6
+#define AUDIO_I2S_MIC_GPIO_SCK  GPIO_NUM_6
 
-// MAX98357A I2S amplifier
+// MAX98357A: BCLK=GPIO8, LRC=GPIO7, DIN=GPIO9.
+// SD/EN is intentionally left unconfigured and unconnected.
 #define AUDIO_I2S_SPK_GPIO_BCLK GPIO_NUM_8
-#define AUDIO_I2S_SPK_GPIO_LRCK GPIO_NUM_9
-#define AUDIO_I2S_SPK_GPIO_DOUT GPIO_NUM_10
-
-// MAX98357A SD_MODE: drive high to keep the amplifier enabled.
-#define AUDIO_I2S_AMP_SD_GPIO GPIO_NUM_7
-
-// External active-high LED, connected through a 220-ohm resistor
-#define BUILTIN_LED_GPIO GPIO_NUM_2
+#define AUDIO_I2S_SPK_GPIO_LRCK GPIO_NUM_7
+#define AUDIO_I2S_SPK_GPIO_DOUT GPIO_NUM_9
 
 #endif
